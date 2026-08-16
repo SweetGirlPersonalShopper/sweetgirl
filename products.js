@@ -22,7 +22,7 @@
 */
 
 const SHEET_JSON_URL =
-  "https://script.google.com/macros/s/AKfycbzpjskeA5EH9mSUpnrAEdOlTGUGGkU-qXaWuAzz7cdDeBzccqfepl5zM_Wt_t4HPa_39w/exec";
+  "https://script.google.com/macros/s/AKfycbyrZPUXxSX2Y4mTKY9zbfh-ATfRie6vh4CDFotw8TOxghbZft-aJ7wz3ITTawaUFN70/exec";
 let PRODUCTS = {
   ropa: [],
   calzado: [],
