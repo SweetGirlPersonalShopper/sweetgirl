@@ -10,6 +10,20 @@
   --ink-soft: #76626a;
   --gold: #d3a35d;
   --white: #fff;
+  --rose-gold: linear-gradient(
+    135deg,
+    #f8ece8 0%,
+    #f0d4cd 28%,
+    #ddb0ab 55%,
+    #c99490 78%,
+    #e8cac2 100%
+  );
+  --rose-gold-soft: radial-gradient(
+    circle,
+    rgba(243, 217, 211, 0.9) 0%,
+    rgba(236, 203, 196, 0.5) 45%,
+    rgba(236, 203, 196, 0) 72%
+  );
   --display: "Cormorant Garamond", serif;
   --script: "Beau Rivage", cursive;
   --body: "Jost", sans-serif;
@@ -64,6 +78,11 @@ h4 {
   border-bottom: 1px solid var(--blush);
   background: rgba(255, 250, 248, 0.92);
   backdrop-filter: blur(12px);
+}
+
+.header-accent {
+  height: 3px;
+  background: var(--rose-gold);
 }
 
 .nav-wrap {
@@ -209,11 +228,13 @@ h4 {
 }
 
 .btn-primary {
-  background: var(--ink);
-  color: white;
+  background: var(--rose-gold);
+  color: var(--ink);
+  box-shadow: 0 10px 24px -14px rgba(185, 146, 148, 0.7);
 }
 .btn-primary:hover {
   background: var(--mauve-dark);
+  color: white;
   transform: translateY(-2px);
 }
 .btn-outline {
@@ -248,10 +269,48 @@ h4 {
   width: 760px;
   height: 550px;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--blush), transparent 68%);
+  background: radial-gradient(circle, #f3d9d3, #eccbc4 45%, transparent 72%);
   content: "";
   transform: translateX(-50%);
   z-index: -1;
+}
+
+.hero-badge {
+  position: relative;
+  width: min(260px, 62vw);
+  margin: 52px auto 0;
+  display: grid;
+  place-items: center;
+}
+
+.hero-badge-glow {
+  position: absolute;
+  inset: -34px;
+  border-radius: 50%;
+  background: var(--rose-gold-soft);
+  filter: blur(4px);
+  z-index: 0;
+}
+
+.hero-badge-ring {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  padding: 6px;
+  background: var(--rose-gold);
+  box-shadow: var(--shadow);
+}
+
+.hero-badge-ring img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 4px solid var(--white);
+  border-radius: 50%;
+  background: var(--white);
+  object-fit: cover;
 }
 
 .sweet-mark {
