@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Entrega inmediata | Sweet Girl</title>
+    <meta
+      name="description"
+      content="Productos disponibles para entrega inmediata con Sweet Girl."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Entrega inmediata | Sweet Girl" />
+    <meta
+      property="og:description"
+      content="Productos disponibles para entrega inmediata con Sweet Girl."
+    />
+    <meta property="og:image" content="multimedia/logo.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Entrega inmediata | Sweet Girl" />
+    <meta
+      name="twitter:description"
+      content="Productos disponibles para entrega inmediata con Sweet Girl."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body data-category="entrega-inmediata">
+    <header class="site-header">
+      <div class="nav-wrap">
+        <a class="brand" href="index.html">
+          <img src="multimedia/logo.jpg" alt="Sweet Girl" class="brand-logo" />
+        </a>
+
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
+          <span></span>
+        </button>
+
+        <nav class="main-nav">
+          <a href="index.html">Inicio</a>
+          <a href="ropa.html">Ropa</a>
+          <a href="calzado.html">Calzado</a>
+          <a href="accesorios.html">Accesorios</a>
+          <a href="belleza.html">Belleza</a>
+          <a href="perfumes.html">Perfumes</a>
+          <a href="vitaminas.html">Vitaminas</a>
+          <a href="promociones.html">Promociones</a>
+          <a class="active" href="entrega-inmediata.html">Entrega inmediata</a>
+        </nav>
+
+        <button class="icon-btn" data-cart-toggle aria-label="Ver carrito">
+          🛍️ <span class="cart-count">0</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="page-hero">
+        <div class="container">
+          <p class="eyebrow">Disponibles ahora</p>
+          <h1>Entrega inmediata</h1>
+          <p>
+            Productos que ya tenemos disponibles para que puedas comprarlos sin
+            esperar una próxima compra.
+          </p>
+        </div>
+      </section>
+
+      <section class="product-section">
+        <div class="container">
+          <div class="search-sort-row">
+            <input
+              id="searchInput"
+              type="search"
+              placeholder="Buscar productos disponibles..."
+            />
+
+            <select id="sortSelect">
+              <option value="default">Ordenar por</option>
+              <option value="price-asc">Precio: menor a mayor</option>
+              <option value="price-desc">Precio: mayor a menor</option>
+            </select>
+            <button
+              id="refreshBtn"
+              type="button"
+              class="btn btn-outline"
+              onclick="refreshProductsNow()"
+            >
+              Actualizar
+            </button>
+          </div>
+
+          <p id="productCount" class="product-count"></p>
+          <div id="productGrid" class="product-grid"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <section>
+          <img
+            src="multimedia/logo.jpg"
+            alt="Sweet Girl"
+            class="brand-logo footer-brand-logo"
+          />
+          <p>
+            Personal Shopper en Estados Unidos. Prendas 100% originales y
+            atención personalizada.
+          </p>
+        </section>
+
+        <section>
+          <h4>Catálogo</h4>
+          <a href="ropa.html">Ropa</a>
+          <a href="calzado.html">Calzado</a>
+          <a href="accesorios.html">Accesorios</a>
+          <a href="belleza.html">Belleza</a>
+          <a href="perfumes.html">Perfumes</a>
+          <a href="vitaminas.html">Vitaminas</a>
+          <a href="entrega-inmediata.html">Entrega inmediata</a>
+          <a href="promociones.html">Promociones</a>
+        </section>
+
+        <section>
+          <h4>Conecta con Sweet Girl</h4>
+          <a
+            href="https://www.instagram.com/sg_personalshopper1"
+            target="_blank"
+            >Instagram</a
+          >
+          <a href="https://www.tiktok.com/@sgb_1112" target="_blank">TikTok</a>
+          <a
+            href="https://api.whatsapp.com/send?phone=16465381517"
+            target="_blank"
+            >WhatsApp</a
+          >
+          <a
+            href="https://chat.whatsapp.com/DDuREfy2GuFCr1NuCn5FSW?mode=gi_t"
+            target="_blank"
+            >Grupo de difusión</a
+          >
+        </section>
+      </div>
+
+      <div class="container footer-bottom">
+        © 2026 Sweet Girl Personal Shopper.
+      </div>
+    </footer>
+
+    <script src="products.js"></script>
+    <script src="cart.js"></script>
+  </body>
+</html>
