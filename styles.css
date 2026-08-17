@@ -148,6 +148,20 @@ h4 {
   color: var(--mauve-dark);
 }
 
+.disabled-link {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.main-nav .disabled-link:hover {
+  color: var(--ink-soft);
+}
+
+.cat-card.disabled-link:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .main-nav a.active::after {
   position: absolute;
   right: 0;
