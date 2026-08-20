@@ -320,12 +320,13 @@ function renderProducts() {
             class="size-select"
             data-size-for="${id}"
             aria-label="Selecciona la talla de ${name}"
+            ${product.stock ? "" : "disabled"}
           >
-            <option value="">Selecciona talla</option>
+            ${product.stock ? `<option value="">Selecciona talla</option>` : ""}
             ${product.sizes
               .map(
-                (size) =>
-                  `<option value="${escapeHtml(size)}">${escapeHtml(size)}</option>`,
+                (size, index) =>
+                  `<option value="${escapeHtml(size)}" ${!product.stock && index === 0 ? "selected" : ""}>${escapeHtml(size)}</option>`,
               )
               .join("")}
           </select>
@@ -597,12 +598,17 @@ function openProductModal(id) {
 
   if (product.sizes.length) {
     sizeWrap.innerHTML = `
-      <select id="sgModalSizeSelect" class="size-select" aria-label="Selecciona la talla de ${escapeHtml(product.name)}">
-        <option value="">Selecciona talla</option>
+      <select
+        id="sgModalSizeSelect"
+        class="size-select"
+        aria-label="Selecciona la talla de ${escapeHtml(product.name)}"
+        ${product.stock ? "" : "disabled"}
+      >
+        ${product.stock ? `<option value="">Selecciona talla</option>` : ""}
         ${product.sizes
           .map(
-            (size) =>
-              `<option value="${escapeHtml(size)}">${escapeHtml(size)}</option>`,
+            (size, index) =>
+              `<option value="${escapeHtml(size)}" ${!product.stock && index === 0 ? "selected" : ""}>${escapeHtml(size)}</option>`,
           )
           .join("")}
       </select>
