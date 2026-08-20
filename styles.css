@@ -703,6 +703,12 @@ h4 {
   color: var(--ink);
 }
 
+.size-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--blush-soft);
+}
+
 .empty-message {
   grid-column: 1 / -1;
   padding: 60px 0;
