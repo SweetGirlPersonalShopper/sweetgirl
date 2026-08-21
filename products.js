@@ -22,7 +22,7 @@
 */
 
 const SHEET_JSON_URL =
-  "https://script.google.com/macros/s/AKfycbyrZPUXxSX2Y4mTKY9zbfh-ATfRie6vh4CDFotw8TOxghbZft-aJ7wz3ITTawaUFN70/exec";
+  "https://script.google.com/macros/s/AKfycbz9hPjxGMUzHAgSNQo_PgwNnXthxFDckcdfpg9b9KZrLEDlrWI9_UfypsqW4PA8lW-7BA/exec";
 let PRODUCTS = {
   ropa: [],
   calzado: [],
@@ -116,6 +116,20 @@ function addProduct(product) {
           .split(",")
           .map((size) => size.trim())
           .filter(Boolean)
+      : [],
+    // Variantes tipo color/olor/sabor. Formato en el Sheet:
+    // "Vainilla|https://imagen1.jpg, Flor de cerezo|https://imagen2.jpg"
+    // La imagen es opcional: "Vainilla, Flor de cerezo" también funciona
+    // y se muestra como una pastilla de texto en vez de una foto.
+    variants: product.variants
+      ? String(product.variants)
+          .split(",")
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+          .map((entry) => {
+            const [name, img] = entry.split("|").map((part) => part.trim());
+            return { name, img: img || "" };
+          })
       : [],
   };
 
@@ -221,6 +235,88 @@ function getCurrentProducts() {
   }
 
   return items;
+}
+
+// Dibuja los swatches de variante (color/olor/sabor) para la tarjeta
+// ("card") o el modal ("modal"). Cada swatch guarda su nombre en
+// data-variant-name y, si tiene foto, en data-variant-img.
+function renderVariantSwatches(product, id, scope) {
+  if (!product.variants.length) return "";
+
+  const idAttr = `data-variant-for="${id}" data-variant-scope="${scope}"`;
+
+  return `
+    <div class="variant-swatches" ${idAttr} role="group" aria-label="Elige una opción de ${escapeHtml(product.name)}">
+      ${product.variants
+        .map((variant, index) => {
+          const safeName = escapeHtml(variant.name);
+          const style = variant.img
+            ? `style="background-image:url('${escapeHtml(variant.img)}')"`
+            : "";
+
+          return `
+            <button
+              type="button"
+              class="variant-swatch ${variant.img ? "has-img" : "text-only"} ${index === 0 ? "selected" : ""}"
+              data-variant-name="${safeName}"
+              data-variant-img="${escapeHtml(variant.img)}"
+              title="${safeName}"
+              aria-label="${safeName}"
+              ${product.stock ? "" : "disabled"}
+              onclick="event.stopPropagation(); selectVariant('${id}', '${scope}', this)"
+              ${style}
+            >
+              ${variant.img ? "" : safeName.charAt(0)}
+            </button>
+          `;
+        })
+        .join("")}
+      <span class="variant-selected-name" data-variant-label-for="${id}" data-variant-scope="${scope}">${escapeHtml(product.variants[0].name)}</span>
+    </div>
+  `;
+}
+
+// Marca el swatch elegido, actualiza el nombre visible y cambia la
+// foto principal si esa variante trae imagen propia.
+function selectVariant(id, scope, button) {
+  const group = button.closest(`[data-variant-for="${CSS.escape(id)}"]`);
+  if (!group) return;
+
+  group
+    .querySelectorAll(".variant-swatch")
+    .forEach((swatch) => swatch.classList.remove("selected"));
+  button.classList.add("selected");
+
+  const label = document.querySelector(
+    `[data-variant-label-for="${CSS.escape(id)}"][data-variant-scope="${scope}"]`,
+  );
+  if (label) label.textContent = button.dataset.variantName;
+
+  const variantImg = button.dataset.variantImg;
+  if (variantImg) {
+    if (scope === "card") {
+      const media = document.querySelector(`[data-media-for="${CSS.escape(id)}"] img`);
+      if (media) media.src = variantImg;
+    } else {
+      const modalImg = document.getElementById("sgModalImg");
+      if (modalImg) modalImg.src = variantImg;
+    }
+  }
+}
+
+function getSelectedVariant(id, scope) {
+  const group = document.querySelector(
+    `[data-variant-for="${CSS.escape(id)}"][data-variant-scope="${scope}"]`,
+  );
+  if (!group) return null;
+
+  const selected = group.querySelector(".variant-swatch.selected");
+  if (!selected) return null;
+
+  return {
+    name: selected.dataset.variantName,
+    img: selected.dataset.variantImg || "",
+  };
 }
 
 function renderProductCount(count) {
@@ -333,10 +429,13 @@ function renderProducts() {
         `
         : "";
 
+      const variantSwatches = renderVariantSwatches(product, id, "card");
+
       return `
         <article class="product-card" data-product-id="${id}">
           <div
             class="product-media sg-clickable-media"
+            data-media-for="${id}"
             onclick="openProductModal('${id}')"
             role="button"
             tabindex="0"
@@ -358,6 +457,7 @@ function renderProducts() {
           <div class="product-body">
             <h3>${name}</h3>
             <p class="desc">${desc}</p>
+            ${variantSwatches}
             ${sizeSelect}
 
             <div class="product-foot">
@@ -397,7 +497,9 @@ function addProductFromCard(id) {
     return;
   }
 
-  addToCart(id, size || null);
+  const variant = getSelectedVariant(id, "card");
+
+  addToCart(id, size || null, variant ? variant.name : null, variant ? variant.img : null);
 }
 
 async function refreshProductsNow() {
@@ -531,6 +633,7 @@ function ensureProductModal() {
       <div class="sg-modal-body">
         <h3 id="sgModalTitle"></h3>
         <p id="sgModalDesc" class="desc"></p>
+        <div id="sgModalVariantWrap"></div>
         <div id="sgModalSizeWrap"></div>
         <div class="product-foot">
           <span class="price-wrap">
@@ -596,6 +699,12 @@ function openProductModal(id) {
 
   stockBadge.hidden = product.stock;
 
+  const variantWrap = document.getElementById("sgModalVariantWrap");
+  variantWrap.innerHTML = renderVariantSwatches(product, product.id, "modal");
+  if (product.variants.length && product.variants[0].img) {
+    img.src = product.variants[0].img;
+  }
+
   if (product.sizes.length) {
     sizeWrap.innerHTML = `
       <select
@@ -654,7 +763,9 @@ function addProductFromModal(id) {
     return;
   }
 
-  addToCart(id, size || null);
+  const variant = getSelectedVariant(id, "modal");
+
+  addToCart(id, size || null, variant ? variant.name : null, variant ? variant.img : null);
   closeProductModal();
 }
 
