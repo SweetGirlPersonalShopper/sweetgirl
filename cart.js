@@ -23,13 +23,26 @@ function findProduct(id) {
   return null;
 }
 
-function addToCart(id, size = null, variant = null, variantImg = null) {
+function addToCart(
+  id,
+  size = null,
+  variant = null,
+  variantImg = null,
+  price = null,
+) {
   const cart = getCart();
   const lineId = [id, size, variant].filter(Boolean).join("__");
   const line = cart.find((item) => item.lineId === lineId);
+  const product = findProduct(id);
+  // Guardamos el precio de la línea explícitamente: si el producto tiene
+  // precio por presentación (ej. "1 unidad" vs "caja x 28"), product.price
+  // solo trae el precio más bajo de referencia, así que necesitamos el
+  // precio real que se eligió en ese momento.
+  const finalPrice = price != null ? price : product ? product.price : 0;
 
   if (line) {
     line.quantity += 1;
+    line.price = finalPrice;
   } else {
     cart.push({
       id,
@@ -38,6 +51,7 @@ function addToCart(id, size = null, variant = null, variantImg = null) {
       variantImg: variantImg || "",
       lineId,
       quantity: 1,
+      price: finalPrice,
     });
   }
 
@@ -91,7 +105,9 @@ function cartCount(cart) {
 function cartTotal(cart) {
   return cart.reduce((total, line) => {
     const product = findProduct(line.id);
-    return total + (product ? product.price * line.quantity : 0);
+    if (!product) return total;
+    const unitPrice = line.price != null ? line.price : product.price;
+    return total + unitPrice * line.quantity;
   }, 0);
 }
 
@@ -238,9 +254,7 @@ function renderRelatedProducts(cart) {
   const firstProduct = findProduct(cart[0].id);
   const preferredCategory = firstProduct ? firstProduct.category : null;
 
-  let pool = preferredCategory
-    ? [...(PRODUCTS[preferredCategory] || [])]
-    : [];
+  let pool = preferredCategory ? [...(PRODUCTS[preferredCategory] || [])] : [];
   pool = pool.filter((product) => !cartIds.has(product.id) && product.stock);
 
   if (pool.length < 3) {
@@ -353,9 +367,11 @@ function renderCart() {
         ? `<img src="${lineImgSrc}" alt="${product.name}">`
         : `<span>${product.name.charAt(0)}</span>`;
 
+      const unitPrice = line.price != null ? line.price : product.price;
+
       const unitPriceRow =
         line.quantity > 1
-          ? `<span class="line-unit-price">${formatCOP(product.price)} c/u</span>`
+          ? `<span class="line-unit-price">${formatCOP(unitPrice)} c/u</span>`
           : "";
 
       return `
@@ -382,7 +398,7 @@ function renderCart() {
 
           <span class="line-price">
             ${unitPriceRow}
-            <strong>${formatCOP(product.price * line.quantity)}</strong>
+            <strong>${formatCOP(unitPrice * line.quantity)}</strong>
           </span>
         </div>
       `;
@@ -440,11 +456,12 @@ function sendCartToWhatsApp() {
 
   cart.forEach((line) => {
     const product = findProduct(line.id);
+    const unitPrice = line.price != null ? line.price : product.price;
     const details = [line.variant, line.size].filter(Boolean).join(", ");
     const detailsText = details ? ` (${details})` : "";
 
     message += `• ${product.name}${detailsText} x${line.quantity} — ${formatCOP(
-      product.price * line.quantity,
+      unitPrice * line.quantity,
     )}\n`;
   });
 
@@ -462,7 +479,8 @@ function sendCartToWhatsApp() {
   // cliente vuelve a abrir el carrito más tarde.
   showConfirmModal({
     title: "Pedido enviado",
-    message: "Abrimos WhatsApp con tu pedido. ¿Quieres vaciar el carrito ahora?",
+    message:
+      "Abrimos WhatsApp con tu pedido. ¿Quieres vaciar el carrito ahora?",
     confirmLabel: "Vaciar carrito",
     cancelLabel: "Mantener carrito",
     onConfirm: () => {
