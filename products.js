@@ -100,7 +100,41 @@ function addProduct(product) {
     .filter(Boolean);
 
   const originalPrice = Number(product.original_price) || 0;
-  const price = Number(product.price) || 0;
+
+  // Tallas / presentaciones. Si cada opción trae "nombre:precio"
+  // (ej. "1 unidad:8000, caja x 6:45800, caja x 28:109000"), el
+  // producto tiene precio por presentación y el precio cambia según
+  // lo que el cliente elija en el selector. Si las opciones no traen
+  // ":" (ej. tallas de ropa "S, M, L"), se sigue usando el precio
+  // único de la columna "price" para todas.
+  const sizesRaw = product.sizes
+    ? String(product.sizes)
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+    : [];
+
+  const hasSizePricing =
+    sizesRaw.length > 0 && sizesRaw.every((entry) => entry.includes(":"));
+
+  const sizePrices = {};
+  if (hasSizePricing) {
+    sizesRaw.forEach((entry) => {
+      const separatorIndex = entry.indexOf(":");
+      const label = entry.slice(0, separatorIndex).trim();
+      const rawPrice = entry.slice(separatorIndex + 1).trim();
+      sizePrices[label] = Number(rawPrice.replace(/[^\d.-]/g, "")) || 0;
+    });
+  }
+
+  const sizes = hasSizePricing
+    ? sizesRaw.map((entry) => entry.slice(0, entry.indexOf(":")).trim())
+    : sizesRaw;
+
+  const price = hasSizePricing
+    ? Math.min(...Object.values(sizePrices))
+    : Number(product.price) || 0;
+
   const onSale = originalPrice > price;
 
   const item = {
@@ -108,15 +142,12 @@ function addProduct(product) {
     name: product.name || "Producto Sweet Girl",
     desc: product.desc || "",
     price,
+    hasSizePricing,
+    sizePrices,
     originalPrice: onSale ? originalPrice : 0,
     img: product.img || "",
     stock: String(product.stock || "").toLowerCase() !== "no",
-    sizes: product.sizes
-      ? String(product.sizes)
-          .split(",")
-          .map((size) => size.trim())
-          .filter(Boolean)
-      : [],
+    sizes,
     // Variantes tipo color/olor/sabor. Formato en el Sheet:
     // "Vainilla|https://imagen1.jpg, Flor de cerezo|https://imagen2.jpg"
     // La imagen es opcional: "Vainilla, Flor de cerezo" también funciona
@@ -295,7 +326,9 @@ function selectVariant(id, scope, button) {
   const variantImg = button.dataset.variantImg;
   if (variantImg) {
     if (scope === "card") {
-      const media = document.querySelector(`[data-media-for="${CSS.escape(id)}"] img`);
+      const media = document.querySelector(
+        `[data-media-for="${CSS.escape(id)}"] img`,
+      );
       if (media) media.src = variantImg;
     } else {
       const modalImg = document.getElementById("sgModalImg");
@@ -410,15 +443,20 @@ function renderProducts() {
         ? `<img src="${escapeHtml(product.img)}" alt="${name}">`
         : `<span class="initial">${name.charAt(0)}</span>`;
 
+      const sizePlaceholder = product.hasSizePricing
+        ? "Selecciona una opción"
+        : "Selecciona talla";
+
       const sizeSelect = product.sizes.length
         ? `
           <select
             class="size-select"
             data-size-for="${id}"
-            aria-label="Selecciona la talla de ${name}"
+            aria-label="${escapeHtml(sizePlaceholder)} de ${name}"
             ${product.stock ? "" : "disabled"}
+            ${product.hasSizePricing ? `onchange="updateSizePrice('${id}', 'card', this.value)"` : ""}
           >
-            ${product.stock ? `<option value="">Selecciona talla</option>` : ""}
+            ${product.stock ? `<option value="">${escapeHtml(sizePlaceholder)}</option>` : ""}
             ${product.sizes
               .map(
                 (size, index) =>
@@ -467,7 +505,11 @@ function renderProducts() {
                     ? `<span class="price-original">${formatCOP(product.originalPrice)}</span>`
                     : ""
                 }
-                <span class="price">${formatCOP(product.price)}</span>
+                <span class="price" data-price-for="${id}" data-price-scope="card">${
+                  product.hasSizePricing
+                    ? `Desde ${formatCOP(product.price)}`
+                    : formatCOP(product.price)
+                }</span>
               </span>
               <button
                 class="add-btn"
@@ -485,6 +527,38 @@ function renderProducts() {
     .join("");
 }
 
+// Actualiza el precio visible (en la tarjeta o en el modal) cuando el
+// cliente elige una presentación/talla que tiene su propio precio.
+function updateSizePrice(id, scope, sizeValue) {
+  const product = PRODUCT_INDEX[id];
+  if (!product || !product.hasSizePricing) return;
+
+  const priceElement =
+    scope === "modal"
+      ? document.getElementById("sgModalPrice")
+      : document.querySelector(
+          `[data-price-for="${CSS.escape(id)}"][data-price-scope="card"]`,
+        );
+
+  if (!priceElement) return;
+
+  if (sizeValue && product.sizePrices[sizeValue] != null) {
+    priceElement.textContent = formatCOP(product.sizePrices[sizeValue]);
+  } else {
+    priceElement.textContent = `Desde ${formatCOP(product.price)}`;
+  }
+}
+
+// Para productos con precio por presentación, devuelve el precio de la
+// opción elegida; si no aplica, devuelve el precio único del producto.
+function resolveSelectedPrice(product, size) {
+  if (!product) return 0;
+  if (product.hasSizePricing && size && product.sizePrices[size] != null) {
+    return product.sizePrices[size];
+  }
+  return product.price;
+}
+
 function addProductFromCard(id) {
   const sizeElement = document.querySelector(
     `[data-size-for="${CSS.escape(id)}"]`,
@@ -493,13 +567,25 @@ function addProductFromCard(id) {
   const size = sizeElement ? sizeElement.value : "";
 
   if (sizeElement && !size) {
-    alert("Por favor selecciona una talla.");
+    alert(
+      PRODUCT_INDEX[id]?.hasSizePricing
+        ? "Por favor selecciona una opción."
+        : "Por favor selecciona una talla.",
+    );
     return;
   }
 
+  const product = PRODUCT_INDEX[id];
   const variant = getSelectedVariant(id, "card");
+  const price = resolveSelectedPrice(product, size);
 
-  addToCart(id, size || null, variant ? variant.name : null, variant ? variant.img : null);
+  addToCart(
+    id,
+    size || null,
+    variant ? variant.name : null,
+    variant ? variant.img : null,
+    price,
+  );
 }
 
 async function refreshProductsNow() {
@@ -580,9 +666,7 @@ async function shareProduct(id) {
   const url = buildProductShareUrl(id);
   const shareData = {
     title: `${product.name} | Sweet Girl`,
-    text: product.desc
-      ? `${product.name} - ${product.desc}`
-      : product.name,
+    text: product.desc ? `${product.name} - ${product.desc}` : product.name,
     url,
   };
 
@@ -695,7 +779,9 @@ function openProductModal(id) {
   } else {
     priceOriginalEl.hidden = true;
   }
-  priceEl.textContent = formatCOP(product.price);
+  priceEl.textContent = product.hasSizePricing
+    ? `Desde ${formatCOP(product.price)}`
+    : formatCOP(product.price);
 
   stockBadge.hidden = product.stock;
 
@@ -706,14 +792,19 @@ function openProductModal(id) {
   }
 
   if (product.sizes.length) {
+    const sizePlaceholder = product.hasSizePricing
+      ? "Selecciona una opción"
+      : "Selecciona talla";
+
     sizeWrap.innerHTML = `
       <select
         id="sgModalSizeSelect"
         class="size-select"
-        aria-label="Selecciona la talla de ${escapeHtml(product.name)}"
+        aria-label="${escapeHtml(sizePlaceholder)} de ${escapeHtml(product.name)}"
         ${product.stock ? "" : "disabled"}
+        ${product.hasSizePricing ? `onchange="updateSizePrice('${product.id}', 'modal', this.value)"` : ""}
       >
-        ${product.stock ? `<option value="">Selecciona talla</option>` : ""}
+        ${product.stock ? `<option value="">${escapeHtml(sizePlaceholder)}</option>` : ""}
         ${product.sizes
           .map(
             (size, index) =>
@@ -757,15 +848,27 @@ function closeProductModal() {
 function addProductFromModal(id) {
   const sizeSelect = document.getElementById("sgModalSizeSelect");
   const size = sizeSelect ? sizeSelect.value : "";
+  const product = PRODUCT_INDEX[id];
 
   if (sizeSelect && !size) {
-    alert("Por favor selecciona una talla.");
+    alert(
+      product && product.hasSizePricing
+        ? "Por favor selecciona una opción."
+        : "Por favor selecciona una talla.",
+    );
     return;
   }
 
   const variant = getSelectedVariant(id, "modal");
+  const price = resolveSelectedPrice(product, size);
 
-  addToCart(id, size || null, variant ? variant.name : null, variant ? variant.img : null);
+  addToCart(
+    id,
+    size || null,
+    variant ? variant.name : null,
+    variant ? variant.img : null,
+    price,
+  );
   closeProductModal();
 }
 
