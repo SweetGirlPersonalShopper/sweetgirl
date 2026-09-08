@@ -1219,6 +1219,16 @@ h4 {
   color: var(--ink-soft);
   font-size: 0.76rem;
 }
+.footer-bottom-link {
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid var(--blush);
+  color: var(--ink-soft);
+  text-decoration: underline;
+}
+.footer-bottom-link:hover {
+  color: var(--mauve-dark);
+}
 
 @media (max-width: 900px) {
   .main-nav {
