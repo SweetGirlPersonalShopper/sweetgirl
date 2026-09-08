@@ -94,25 +94,44 @@
       });
   }
 
-  function init() {
-    // Si ya eligió antes (aceptó o rechazó), no volvemos a mostrar el aviso.
-    if (getConsent()) return;
+  function openPreferences() {
+    // Si ya había un aviso en pantalla (raro, pero por si acaso), lo quitamos
+    // sin animación para reemplazarlo por uno nuevo.
+    const existing = document.getElementById("sgCookieBanner");
+    if (existing) existing.remove();
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", buildBanner);
-    } else {
-      buildBanner();
-    }
-  }
-
-  // Útil para pruebas o para un futuro botón "Cambiar preferencias de cookies".
-  window.sgResetCookieConsent = function () {
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
       // no-op
     }
-  };
+
+    buildBanner();
+  }
+
+  function attachFooterLink() {
+    const link = document.getElementById("sgCookiePrefsLink");
+    if (!link) return;
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      openPreferences();
+    });
+  }
+
+  function init() {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        attachFooterLink();
+        if (!getConsent()) buildBanner();
+      });
+    } else {
+      attachFooterLink();
+      if (!getConsent()) buildBanner();
+    }
+  }
+
+  // Disponible por si en algún momento se quiere disparar desde otro botón.
+  window.sgOpenCookiePreferences = openPreferences;
 
   init();
 })();
